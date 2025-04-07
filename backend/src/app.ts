@@ -7,6 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+import documentRoutes from "./routes/document.routes";
+
+app.use("/api/v1/document", documentRoutes);
+
 
 
 export default app;
