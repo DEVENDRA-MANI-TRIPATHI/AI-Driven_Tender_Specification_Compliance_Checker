@@ -5,7 +5,7 @@ import ResultAnalysis from "./components/ResultAnalysis";
 function App() {
   const [result, setResult] = useState<any>(null);
 
-  const handleCompare = async (comparisonResult: any) => {
+  const handleCompare = (comparisonResult: any) => {
     setResult(comparisonResult);
   };
 
@@ -14,12 +14,14 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {result ? (
-        <ResultAnalysis result={result} onBack={handleBack} />
-      ) : (
-        <DocumentInput onCompare={handleCompare} />
-      )}
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-2xl">
+        {result ? (
+          <ResultAnalysis result={result} onBack={handleBack} />
+        ) : (
+          <DocumentInput onCompare={handleCompare} />
+        )}
+      </div>
     </div>
   );
 }

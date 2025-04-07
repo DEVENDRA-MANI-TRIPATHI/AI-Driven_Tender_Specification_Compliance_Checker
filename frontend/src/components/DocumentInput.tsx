@@ -1,107 +1,71 @@
-import React, { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { useState } from "react";
+import axios from "axios";
+import DropzoneUploader from "./DropzoneUploader";
+import { extractTextFromPDF } from "../utils/extractPdfText";
 
-interface Props {
-  onCompare: (referenceFile: File, userFile: File) => void;
-}
+type DocumentInputProps = {
+  onCompare: (result: any) => void;
+};
 
-const DocumentInput: React.FC<Props> = ({ onCompare }) => {
+const DocumentInput: React.FC<DocumentInputProps> = ({ onCompare }) => {
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [userFile, setUserFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleDrop = (setter: React.Dispatch<React.SetStateAction<File | null>>) =>
-    useCallback((acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (file && file.type === "application/pdf") {
-        setter(file);
-      } else {
-        alert("Only PDF files are supported.");
-      }
-    }, []);
-
-  const {
-    getRootProps: getRefRootProps,
-    getInputProps: getRefInputProps,
-    isDragActive: isRefActive,
-  } = useDropzone({
-    onDrop: handleDrop(setReferenceFile),
-    multiple: false,
-    accept: { "application/pdf": [".pdf"] },
-  });
-
-  const {
-    getRootProps: getUserRootProps,
-    getInputProps: getUserInputProps,
-    isDragActive: isUserActive,
-  } = useDropzone({
-    onDrop: handleDrop(setUserFile),
-    multiple: false,
-    accept: { "application/pdf": [".pdf"] },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (referenceFile && userFile) {
-      onCompare(referenceFile, userFile);
-    } else {
+
+    if (!referenceFile || !userFile) {
       alert("Please upload both reference and user PDF files.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const [refText, userText] = await Promise.all([
+        extractTextFromPDF(referenceFile),
+        extractTextFromPDF(userFile),
+      ]);
+
+      const response = await axios.post("http://localhost:8000/api/v1/document/compare", {
+        referenceDoc: refText,
+        userDoc: userText,
+      });
+
+      onCompare(response.data.result);
+    } catch (error) {
+      console.error("Error comparing documents:", error);
+      alert("An error occurred while comparing the documents.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10">
-      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Upload PDF Documents</h2>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* Reference Document Dropzone */}
-        <div>
-          <label className="block text-lg font-semibold mb-2 text-gray-700">
-            Reference Document
-          </label>
-          <div
-            {...getRefRootProps()}
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
-              isRefActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
-            }`}
-          >
-            <input {...getRefInputProps()} />
-            {referenceFile ? (
-              <p className="text-green-700 font-medium">{referenceFile.name}</p>
-            ) : (
-              <p className="text-gray-500">Drag & drop a PDF file here, or click to select.</p>
-            )}
-          </div>
-        </div>
-
-        {/* User Document Dropzone */}
-        <div>
-          <label className="block text-lg font-semibold mb-2 text-gray-700">
-            User Document
-          </label>
-          <div
-            {...getUserRootProps()}
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
-              isUserActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
-            }`}
-          >
-            <input {...getUserInputProps()} />
-            {userFile ? (
-              <p className="text-green-700 font-medium">{userFile.name}</p>
-            ) : (
-              <p className="text-gray-500">Drag & drop a PDF file here, or click to select.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold text-lg hover:bg-green-700 transition duration-200"
-        >
-          Compare Documents
-        </button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-gray-900 rounded-lg shadow-md">
+      <DropzoneUploader
+        label="📘 Reference PDF"
+        file={referenceFile}
+        onDrop={setReferenceFile}
+      />
+      <DropzoneUploader
+        label="📄 User PDF"
+        file={userFile}
+        onDrop={setUserFile}
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className={`w-full text-center py-3 rounded-md transition-all duration-300 font-semibold text-white ${
+          loading
+            ? "bg-blue-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+      >
+        {loading ? "Processing..." : "🔍 Compare Documents"}
+      </button>
+    </form>
   );
 };
 
