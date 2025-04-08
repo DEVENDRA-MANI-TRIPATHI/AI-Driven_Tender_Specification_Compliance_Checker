@@ -27,9 +27,12 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
     fs.unlinkSync(referenceFile.path);
     fs.unlinkSync(userFile.path);
 
+    const comparisonResult = await compareDocuments(userText, referenceText);
+
     res.status(200).json({
       referenceText,
       userText,
+      comparisonResult,
       message: "Files uploaded and text extracted successfully",
     });
   } catch (error: any) {
