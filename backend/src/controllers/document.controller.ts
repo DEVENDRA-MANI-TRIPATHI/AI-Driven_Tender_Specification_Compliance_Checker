@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { compareDocuments } from "../utils/gemini";
 import fs from "fs";
 import { extractTextFromPDF } from "../utils/pdf-parser";
+// import { generatePDF } from "../utils/pdf-generator";
+// import { generateExcelBuffer } from '../utils/generateExcel';
 
 
 export const uploadAndExtract = async (req: Request, res: Response): Promise<void> => {
@@ -28,6 +30,15 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
     fs.unlinkSync(userFile.path);
 
     const comparisonResult = await compareDocuments(userText, referenceText);
+    // const pdfBuffer = await generatePDF(comparisonResult);
+    // res.setHeader("Content-Type", "application/pdf");
+    // res.setHeader("Content-Disposition", "inline; filename=report.pdf");
+    // res.send(pdfBuffer);
+    // const excelBuffer = await generateExcelBuffer(comparisonResult);
+    // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    // res.setHeader("Content-Disposition", "attachment; filename=report.xlsx"); // or use 'inline' for preview
+    // res.send(excelBuffer);
+    
 
     res.status(200).json({
       referenceText,
