@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
     compareDocsController,
-    uploadAndExtract
+    uploadAndExtract,
+    downloadReport
 } from "../controllers/document.controller";
 
 import upload from "../middlewares/multer.middleware";
@@ -17,5 +18,7 @@ router.post("/upload",
     ]),
     uploadAndExtract
 );
+
+router.get("/download", downloadReport);
 
 export default router;

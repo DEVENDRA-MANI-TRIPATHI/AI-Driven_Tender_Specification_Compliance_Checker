@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import { compareDocuments } from "../utils/gemini";
 import fs from "fs";
 import { extractTextFromPDF } from "../utils/pdf-parser";
-// import { generatePDF } from "../utils/pdf-generator";
-// import { generateExcelBuffer } from '../utils/generateExcel';
+import { generatePDF } from "../utils/pdf-generator";
+import { generateExcelBuffer } from '../utils/generateExcel';
+import { getComparisonResult, setComparisonResult } from "../store/comparisionResult.store";
 
 
 export const uploadAndExtract = async (req: Request, res: Response): Promise<void> => {
@@ -30,14 +31,8 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
     fs.unlinkSync(userFile.path);
 
     const comparisonResult = await compareDocuments(userText, referenceText);
-    // const pdfBuffer = await generatePDF(comparisonResult);
-    // res.setHeader("Content-Type", "application/pdf");
-    // res.setHeader("Content-Disposition", "inline; filename=report.pdf");
-    // res.send(pdfBuffer);
-    // const excelBuffer = await generateExcelBuffer(comparisonResult);
-    // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    // res.setHeader("Content-Disposition", "attachment; filename=report.xlsx"); // or use 'inline' for preview
-    // res.send(excelBuffer);
+    setComparisonResult(comparisonResult);
+    
     
 
     res.status(200).json({
@@ -78,3 +73,33 @@ export const compareDocsController = async (req: Request, res: Response): Promis
   }
 };
 
+
+
+
+export const downloadReport = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const format = req.query.format;
+    const result=getComparisonResult()
+
+    if (format === "pdf") {
+      const pdfBuffer = await generatePDF(result);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "inline; filename=report.pdf");
+      res.send(pdfBuffer);
+      return;
+    }
+
+    if (format === "excel") {
+      const excelBuffer = await generateExcelBuffer(result);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=report.xlsx");
+      res.send(excelBuffer);
+      return;
+    }
+
+    res.status(400).json({ error: "Invalid format. Use 'pdf' or 'excel'." });
+  } catch (error: any) {
+    console.error("Download error:", error.message);
+    res.status(500).json({ error: "Failed to generate report." });
+  }
+};
