@@ -4,6 +4,7 @@ import {
     uploadAndExtract,
     downloadReport
 } from "../controllers/document.controller";
+import { addFeedback } from "../controllers/addFeedback.controller";
 
 import upload from "../middlewares/multer.middleware";
 
@@ -20,5 +21,6 @@ router.post("/upload",
 );
 
 router.get("/download", downloadReport);
+router.post("/:comparisonId/feedback", addFeedback);
 
 export default router;

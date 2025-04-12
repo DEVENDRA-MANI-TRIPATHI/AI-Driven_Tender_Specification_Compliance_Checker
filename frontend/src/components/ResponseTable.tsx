@@ -1,36 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Row = {
   specification: string;
   reference: string;
   user: string;
-  result: string;
+  status: string;
   feedback?: string;
 };
 
-const dummyData: Row[] = [
-  {
-    specification: "Speed",
-    reference: "120 km/h",
-    user: "110 km/h",
-    result: "Incorrect",
-  },
-  {
-    specification: "Color",
-    reference: "Red",
-    user: "Red",
-    result: "Correct",
-  },
-  {
-    specification: "Size",
-    reference: "15 cm",
-    user: "12 cm",
-    result: "Incorrect",
-  },
-];
+type ResponseTableProps = {
+  data?: Row[];
+};
 
-const ResponseTable = () => {
-  const [rows, setRows] = useState<Row[]>(dummyData);
+const ResponseTable: React.FC<ResponseTableProps> = ({ data }) => {
+  const [rows, setRows] = useState<Row[]>([]);
+
+  useEffect(() => {
+    if (data) {
+      setRows(data);
+    }
+  }, [data]);
 
   const updateFeedback = (index: number, feedback: string) => {
     const updated = [...rows];
@@ -56,14 +45,14 @@ const ResponseTable = () => {
               <td className="p-2">{row.specification}</td>
               <td className="p-2">{row.reference}</td>
               <td className="p-2">{row.user}</td>
-              <td className="p-2">{row.result}</td>
+              <td className="p-2">{row.status}</td>
               <td className="p-2">
                 <input
-                type="text"
-                value={row.feedback || ""}
-                onChange={(e) => updateFeedback(i, e.target.value)}
-                className="border rounded px-2 py-1 w-full bg-gray-900 text-white border-gray-600"
-                placeholder="Provide feedback"
+                  type="text"
+                  value={row.feedback || ""}
+                  onChange={(e) => updateFeedback(i, e.target.value)}
+                  className="border rounded px-2 py-1 w-full bg-gray-900 text-white border-gray-600"
+                  placeholder="Provide feedback"
                 />
               </td>
             </tr>

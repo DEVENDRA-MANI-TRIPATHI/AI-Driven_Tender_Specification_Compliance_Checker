@@ -1,24 +1,67 @@
+import { useState } from "react";
+import axios from "axios";
+
 const DownloadButton = () => {
-    const handleDownload = () => {
-      const blob = new Blob(["This is a sample response file."], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
+  const [showOptions, setShowOptions] = useState(false);
+
+  const handleDownload = async (format: "pdf" | "excel") => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8000/api/v1/document/download?format=${format}`,
+        { responseType: "blob" }
+      );
+
+      const fileName = format === "pdf" ? "report.pdf" : "report.xlsx";
+
+      const blob = new Blob([response.data], {
+        type:
+          format === "pdf"
+            ? "application/pdf"
+            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "response.txt");
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
-    };
-  
-    return (
-      <button
-        onClick={handleDownload}
-        className="bg-green-600 text-white px-4 py-2 rounded mb-6"
-      >
-        ⬇️ Download Response
-      </button>
-    );
+      window.URL.revokeObjectURL(url);
+      setShowOptions(false);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Something went wrong while downloading the report.");
+    }
   };
-  
-  export default DownloadButton;
-  
+
+  return (
+    <div className="relative mb-6">
+      <button
+        onClick={() => setShowOptions(!showOptions)}
+        className="bg-green-600 text-white px-4 py-2 rounded"
+      >
+        ⬇️ Download Report
+      </button>
+
+      {showOptions && (
+        <div className="absolute mt-2 bg-white text-black shadow-lg rounded z-10">
+          <button
+            onClick={() => handleDownload("pdf")}
+            className="block w-full px-4 py-2 hover:bg-gray-200 text-left"
+          >
+            📄 PDF
+          </button>
+          <button
+            onClick={() => handleDownload("excel")}
+            className="block w-full px-4 py-2 hover:bg-gray-200 text-left"
+          >
+            📊 Excel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DownloadButton;

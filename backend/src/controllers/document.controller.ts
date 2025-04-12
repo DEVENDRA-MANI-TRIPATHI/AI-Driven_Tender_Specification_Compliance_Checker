@@ -5,6 +5,7 @@ import { extractTextFromPDF } from "../utils/pdf-parser";
 import { generatePDF } from "../utils/pdf-generator";
 import { generateExcelBuffer } from '../utils/generateExcel';
 import { getComparisonResult, setComparisonResult } from "../store/comparisionResult.store";
+import ComparisonModel from "../models/comparison.model";
 
 
 export const uploadAndExtract = async (req: Request, res: Response): Promise<void> => {
@@ -32,13 +33,20 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
 
     const comparisonResult = await compareDocuments(userText, referenceText);
     setComparisonResult(comparisonResult);
+
+    const savedComparison = await ComparisonModel.create({
+      matchPercentage: comparisonResult.matchPercentage,
+      summary: comparisonResult.summary,
+      comparison: comparisonResult.comparison,
+    });
     
     
 
     res.status(200).json({
+      comparisonId: savedComparison._id,
       referenceText,
       userText,
-      comparisonResult,
+      comparisonResult:savedComparison,
       message: "Files uploaded and text extracted successfully",
     });
   } catch (error: any) {
