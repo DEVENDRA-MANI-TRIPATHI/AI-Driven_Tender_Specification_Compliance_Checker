@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 
 interface UploadSectionProps {
-  onCompare: (result: any) => void;
+  onCompare: (result: any, comparisonId: string) => void;
 }
 
 const UploadSection: React.FC<UploadSectionProps> = ({ onCompare }) => {
@@ -29,7 +29,9 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onCompare }) => {
       );
 
       console.log("✅ Response from server:", res.data);
-      onCompare(res.data.comparisonResult);
+      const { comparisonResult, comparisonId } = res.data;
+      console.log(comparisonId)
+      onCompare(comparisonResult, comparisonId);
     } catch (error: any) {
       console.error("Upload error:", error.message);
       alert("Failed to upload and compare documents.");

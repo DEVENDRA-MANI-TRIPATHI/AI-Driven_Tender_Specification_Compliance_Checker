@@ -5,9 +5,11 @@ import ResponseTable from "../components/ResponseTable";
 
 export const Dashboard = () => {
   const [comparisonResult, setComparisonResult] = useState<any>(null);
+  const [comparisonId, setComparisonId] = useState("");
 
-  const handleCompare = (result: any) => {
+  const handleCompare = (result: any,id:string) => {
     setComparisonResult(result);
+    setComparisonId(id);
   };
 
   return (
@@ -16,7 +18,7 @@ export const Dashboard = () => {
       <UploadSection onCompare={handleCompare} />
       <DownloadButton />
       {comparisonResult?.comparison && (
-        <ResponseTable data={comparisonResult.comparison} />
+        <ResponseTable data={comparisonResult.comparison} comparisonId={comparisonId} />
       )}
     </div>
   );
