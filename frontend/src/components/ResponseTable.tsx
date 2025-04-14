@@ -35,7 +35,7 @@ const ResponseTable: React.FC<ResponseTableProps> = ({
 
     try {
       await axios.post(
-        `http://localhost:8000/api/v1/document/${comparisonId}/feedback`,
+        `${import.meta.env.VITE_API_BASE_URL}/document/${comparisonId}/feedback`,
         {
           specification: row.specification,
           reference: row.reference,

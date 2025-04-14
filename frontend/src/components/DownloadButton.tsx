@@ -11,7 +11,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ comparisonId }) => {
   const handleDownload = async (format: "pdf" | "excel",comparisonId: string) => {
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/v1/document/download?format=${format}&comparisonId=${comparisonId}`,
+        `${import.meta.env.VITE_API_BASE_URL}/document/download?format=${format}&comparisonId=${comparisonId}`,
         { responseType: "blob" }
       );
 

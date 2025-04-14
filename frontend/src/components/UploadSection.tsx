@@ -23,7 +23,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onCompare }) => {
     try {
       setLoading(true);
       const res = await axios.post(
-        "http://localhost:8000/api/v1/document/upload",
+        `${import.meta.env.VITE_API_BASE_URL}/document/upload`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
