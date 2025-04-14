@@ -1,13 +1,17 @@
 import { useState } from "react";
 import axios from "axios";
 
-const DownloadButton = () => {
+type DownloadButtonProps = {
+  comparisonId: string;
+};
+
+const DownloadButton: React.FC<DownloadButtonProps> = ({ comparisonId }) => {
   const [showOptions, setShowOptions] = useState(false);
 
-  const handleDownload = async (format: "pdf" | "excel") => {
+  const handleDownload = async (format: "pdf" | "excel",comparisonId: string) => {
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/v1/document/download?format=${format}`,
+        `http://localhost:8000/api/v1/document/download?format=${format}&comparisonId=${comparisonId}`,
         { responseType: "blob" }
       );
 
@@ -47,13 +51,13 @@ const DownloadButton = () => {
       {showOptions && (
         <div className="absolute mt-2 bg-white text-black shadow-lg rounded z-20">
           <button
-            onClick={() => handleDownload("pdf")}
+            onClick={() => handleDownload("pdf",comparisonId)}
             className="block w-full px-4 py-2 hover:bg-gray-200 text-left"
           >
             📄 PDF
           </button>
           <button
-            onClick={() => handleDownload("excel")}
+            onClick={() => handleDownload("excel",comparisonId)}
             className="block w-full px-4 py-2 hover:bg-gray-200 text-left"
           >
             📊 Excel
