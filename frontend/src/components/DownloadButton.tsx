@@ -45,7 +45,7 @@ const DownloadButton = () => {
       </button>
 
       {showOptions && (
-        <div className="absolute mt-2 bg-white text-black shadow-lg rounded z-10">
+        <div className="absolute mt-2 bg-white text-black shadow-lg rounded z-20">
           <button
             onClick={() => handleDownload("pdf")}
             className="block w-full px-4 py-2 hover:bg-gray-200 text-left"
