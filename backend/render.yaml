@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ai-driven-backend
+    env: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    branch: master
+    envVars:
+      - key: NODE_VERSION
+        value: 22
