@@ -1,5 +1,11 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
+function sanitizeText(text: string): string {
+  return text
+    .replace(/Ω|Ω/g, 'Ohm') // Replace Ohm symbols
+    .replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII
+}
+
 export async function generatePDF(result: any): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   let page = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -7,90 +13,153 @@ export async function generatePDF(result: any): Promise<Buffer> {
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontSize = 12;
-  const lineHeight = 16;
+  const titleSize = 18;
   const margin = 50;
+  const rowHeight = 40;
+  const linePadding = 5;
+
+  const colWidths = [130, 130, 130, 100]; // 4 columns
+  const colX = [
+    margin,
+    margin + colWidths[0],
+    margin + colWidths[0] + colWidths[1],
+    margin + colWidths[0] + colWidths[1] + colWidths[2],
+  ];
+
   let y = height - margin;
 
   const wrapText = (text: string, maxWidth: number): string[] => {
-    const words = text.split(" ");
+    const words = sanitizeText(text).split(' ');
     const lines: string[] = [];
-    let currentLine = "";
+    let current = '';
 
     for (const word of words) {
-      const lineWithWord = currentLine + (currentLine ? " " : "") + word;
-      const lineWidth = font.widthOfTextAtSize(lineWithWord, fontSize);
+      const testLine = current ? `${current} ${word}` : word;
+      const lineWidth = font.widthOfTextAtSize(testLine, fontSize);
       if (lineWidth < maxWidth) {
-        currentLine = lineWithWord;
+        current = testLine;
       } else {
-        lines.push(currentLine);
-        currentLine = word;
+        if (current) lines.push(current);
+        current = word;
       }
     }
 
-    if (currentLine) lines.push(currentLine);
+    if (current) lines.push(current);
     return lines;
   };
 
-  const drawLine = (text: string) => {
-    if (y < margin) {
+  const checkPageBreak = (lineCount: number) => {
+    if (y - lineCount * fontSize - 10 < margin) {
       page = pdfDoc.addPage([595.28, 841.89]);
       y = height - margin;
     }
-    page.drawText(text, {
-      x: margin,
-      y,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
-    y -= lineHeight;
   };
 
-  // Draw title
-  page.drawText("Compliance Report", {
+  const drawTextInCell = (text: string, x: number, maxWidth: number) => {
+    const lines = wrapText(text, maxWidth - 2 * linePadding);
+    lines.forEach((line, idx) => {
+      page.drawText(line, {
+        x: x + linePadding,
+        y: y - fontSize - idx * fontSize,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    });
+    return lines.length;
+  };
+
+  const drawRowWithBorders = (row: string[]) => {
+    const lineCounts = row.map((cell, i) =>
+      wrapText(cell, colWidths[i] - 2 * linePadding).length
+    );
+    const maxLines = Math.max(...lineCounts);
+    const rowHeightTotal = maxLines * fontSize + 10;
+
+    checkPageBreak(maxLines);
+
+    // Draw cell borders
+    for (let i = 0; i < colX.length; i++) {
+      page.drawRectangle({
+        x: colX[i],
+        y: y - rowHeightTotal,
+        width: colWidths[i],
+        height: rowHeightTotal,
+        borderColor: rgb(0.7, 0.7, 0.7),
+        borderWidth: 0.5,
+      });
+    }
+
+    // Draw content
+    row.forEach((cell, i) => {
+      drawTextInCell(cell, colX[i], colWidths[i]);
+    });
+
+    y -= rowHeightTotal;
+  };
+
+  // Title
+  page.drawText('Compliance Report', {
     x: margin,
     y,
-    size: 18,
+    size: titleSize,
     font,
     color: rgb(0, 0.53, 0.71),
   });
   y -= 30;
 
-  drawLine(`Generated on: ${new Date().toLocaleString()}`);
+  page.drawText(`Generated on: ${new Date().toLocaleString()}`, {
+    x: margin,
+    y,
+    size: fontSize,
+    font,
+    color: rgb(0, 0, 0),
+  });
+  y -= 20;
+
+  if (!result || !result.matchPercentage || !result.summary || !result.comparison) {
+    page.drawText('Invalid result object provided.', {
+      x: margin,
+      y,
+      size: fontSize,
+      font,
+      color: rgb(1, 0, 0),
+    });
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+  }
+
+  page.drawText(`Match Percentage: ${result.matchPercentage}%`, {
+    x: margin,
+    y,
+    size: fontSize,
+    font,
+    color: rgb(0, 0, 0),
+  });
+  y -= 20;
+
+  const summaryLines = wrapText(result.summary, width - 2 * margin);
+  summaryLines.forEach((line) => {
+    page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
+    y -= fontSize + 2;
+  });
   y -= 10;
 
-  drawLine("Comparison Summary:");
-  y -= 5;
+  page.drawText('Comparison Table:', { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
+  y -= 20;
 
-  for (const key in result) {
-    const value = result[key];
+  // Header
+  drawRowWithBorders(['Specification', 'Reference', 'User', 'Status']);
 
-    if (typeof value === "string") {
-      drawLine(`${key}:`);
-      const lines = wrapText(value, width - margin * 2);
-      lines.forEach(drawLine);
-    } else if (Array.isArray(value)) {
-      drawLine(`${key}:`);
-      value.forEach((item: string) => {
-        const lines = wrapText(`- ${item}`, width - margin * 2);
-        lines.forEach(drawLine);
-      });
-    } else if (typeof value === "object" && value !== null) {
-      drawLine(`${key}:`);
-      for (const subKey in value) {
-        const subValue = value[subKey];
-        if (Array.isArray(subValue)) {
-          drawLine(`  ${subKey}:`);
-          subValue.forEach((item: string) => {
-            const lines = wrapText(`    - ${item}`, width - margin * 2);
-            lines.forEach(drawLine);
-          });
-        }
-      }
-    }
-
-    y -= 10;
-  }
+  // Data
+  result.comparison.forEach((item: any) => {
+    drawRowWithBorders([
+      item.specification || '',
+      item.reference || '',
+      item.user || '',
+      item.status || '',
+    ]);
+  });
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);

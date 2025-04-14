@@ -4,7 +4,6 @@ import fs from "fs";
 import { extractTextFromPDF } from "../utils/pdf-parser";
 import { generatePDF } from "../utils/pdf-generator";
 import { generateExcelBuffer } from '../utils/generateExcel';
-import { getComparisonResult, setComparisonResult } from "../store/comparisionResult.store";
 import ComparisonModel from "../models/comparison.model";
 
 
@@ -32,7 +31,6 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
     fs.unlinkSync(userFile.path);
 
     const comparisonResult = await compareDocuments(userText, referenceText);
-    setComparisonResult(comparisonResult);
 
     const savedComparison = await ComparisonModel.create({
       matchPercentage: comparisonResult.matchPercentage,
@@ -83,11 +81,22 @@ export const compareDocsController = async (req: Request, res: Response): Promis
 
 
 
-
 export const downloadReport = async (req: Request, res: Response): Promise<void> => {
   try {
-    const format = req.query.format;
-    const result=getComparisonResult()
+    const format = req.query.format as string;
+    const comparisonId = req.query.comparisonId as string;
+
+    if (!comparisonId) {
+      res.status(400).json({ error: "Missing comparisonId in query parameters." });
+      return;
+    }
+
+    const result = await ComparisonModel.findById(comparisonId).lean();
+
+    if (!result) {
+      res.status(404).json({ error: "Comparison result not found." });
+      return;
+    }
 
     if (format === "pdf") {
       const pdfBuffer = await generatePDF(result);
@@ -99,7 +108,10 @@ export const downloadReport = async (req: Request, res: Response): Promise<void>
 
     if (format === "excel") {
       const excelBuffer = await generateExcelBuffer(result);
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
       res.setHeader("Content-Disposition", "attachment; filename=report.xlsx");
       res.send(excelBuffer);
       return;
