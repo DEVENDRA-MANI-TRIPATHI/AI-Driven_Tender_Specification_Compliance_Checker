@@ -5,6 +5,12 @@ import { extractTextFromPDF } from "../utils/pdf-parser";
 import { generatePDF } from "../utils/pdf-generator";
 import { generateExcelBuffer } from '../utils/generateExcel';
 import ComparisonModel from "../models/comparison.model";
+import { extractTextFromExcel } from "../utils/extractTextFromExcel"
+
+function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || '';
+}
+
 
 
 export const uploadAndExtract = async (req: Request, res: Response): Promise<void> => {
@@ -24,8 +30,27 @@ export const uploadAndExtract = async (req: Request, res: Response): Promise<voi
     const referenceBuffer = fs.readFileSync(referenceFile.path);
     const userBuffer = fs.readFileSync(userFile.path);
 
-    const referenceText = await extractTextFromPDF(referenceBuffer);
-    const userText = await extractTextFromPDF(userBuffer);
+    const referenceExt = getFileExtension(referenceFile.originalname);
+    const userExt = getFileExtension(userFile.originalname);
+
+    let referenceText = "";
+    let userText = "";
+
+    if (referenceExt === "pdf") {
+      referenceText = await extractTextFromPDF(referenceBuffer);
+    } else if (referenceExt === "xlsx") {
+      referenceText = await extractTextFromExcel(referenceBuffer);
+    } else {
+      throw new Error("Unsupported file type for reference file.");
+    }
+
+    if (userExt === "pdf") {
+      userText = await extractTextFromPDF(userBuffer);
+    } else if (userExt === "xlsx") {
+      userText = await extractTextFromExcel(userBuffer);
+    } else {
+      throw new Error("Unsupported file type for user file.");
+    }
 
     fs.unlinkSync(referenceFile.path);
     fs.unlinkSync(userFile.path);
